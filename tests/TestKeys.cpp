@@ -31,6 +31,7 @@
 #include "format/KeePass2Reader.h"
 #include "format/KeePass2Writer.h"
 #include "keys/CompositeKey.h"
+#include "keys/CryptoBoxKey.h"
 #include "keys/FileKey.h"
 #include "keys/PasswordKey.h"
 #include "mock/MockChallengeResponseKey.h"
@@ -246,7 +247,7 @@ void TestKeys::benchmarkTransformKey()
     };
 }
 
-void TestKeys::testCryptoboxKeyComponents()
+void TestKeys::testCryptoBoxKeyComponents()
 {
     auto passwordKeyEnc = QSharedPointer<PasswordKey>::create("password");
     auto fileKeyEnc = QSharedPointer<FileKey>::create();
@@ -260,14 +261,14 @@ void TestKeys::testCryptoboxKeyComponents()
     auto compositeKeyEnc = QSharedPointer<CompositeKey>::create();
     compositeKeyEnc->addKey(passwordKeyEnc);
 
-    auto cryptoboxKeyEnc = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyEnc->addKey(passwordKeyEnc);
-    cryptoboxKeyEnc->addKey(fileKeyEnc);
-    cryptoboxKeyEnc->addKey(compositeKeyEnc);
-    cryptoboxKeyEnc->addChallengeResponseKey(challengeResponseKeyEnc);
+    auto CryptoBoxKeyEnc = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyEnc->addKey(passwordKeyEnc);
+    CryptoBoxKeyEnc->addKey(fileKeyEnc);
+    CryptoBoxKeyEnc->addKey(compositeKeyEnc);
+    CryptoBoxKeyEnc->addChallengeResponseKey(challengeResponseKeyEnc);
 
     auto db1 = QSharedPointer<Database>::create();
-    db1->setKey(cryptoboxKeyEnc);
+    db1->setKey(CryptoBoxKeyEnc);
 
     KeePass2Writer writer;
     QBuffer buffer;
@@ -277,72 +278,72 @@ void TestKeys::testCryptoboxKeyComponents()
     buffer.seek(0);
     auto db2 = QSharedPointer<Database>::create();
     KeePass2Reader reader;
-    auto cryptoboxKeyDec1 = QSharedPointer<CryptoboxKey>::create();
+    auto CryptoBoxKeyDec1 = QSharedPointer<CryptoBoxKey>::create();
 
-    QVERIFY(!reader.readDatabase(&buffer, cryptoboxKeyDec1, db2.data()));
+    QVERIFY(!reader.readDatabase(&buffer, CryptoBoxKeyDec1, db2.data()));
     QVERIFY(reader.hasError());
 
     // try decryption with different key components, all should be successful
-    cryptoboxKeyDec1->addKey(passwordKeyEnc);
+    CryptoBoxKeyDec1->addKey(passwordKeyEnc);
     buffer.seek(0);
-    QVERIFY(reader.readDatabase(&buffer, cryptoboxKeyDec1, db2.data()));
+    QVERIFY(reader.readDatabase(&buffer, CryptoBoxKeyDec1, db2.data()));
     if (reader.hasError()) {
         QFAIL(qPrintable(reader.errorString()));
     }
 
-    auto cryptoboxKeyDec2 = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyDec2->addKey(fileKeyEnc);
+    auto CryptoBoxKeyDec2 = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyDec2->addKey(fileKeyEnc);
     buffer.seek(0);
-    QVERIFY(reader.readDatabase(&buffer, cryptoboxKeyDec2, db2.data()));
+    QVERIFY(reader.readDatabase(&buffer, CryptoBoxKeyDec2, db2.data()));
     if (reader.hasError()) {
         QFAIL(qPrintable(reader.errorString()));
     }
 
-    auto cryptoboxKeyDec3 = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyDec3->addKey(compositeKeyEnc);
+    auto CryptoBoxKeyDec3 = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyDec3->addKey(compositeKeyEnc);
     buffer.seek(0);
-    QVERIFY(reader.readDatabase(&buffer, cryptoboxKeyDec3, db2.data()));
+    QVERIFY(reader.readDatabase(&buffer, CryptoBoxKeyDec3, db2.data()));
     if (reader.hasError()) {
         QFAIL(qPrintable(reader.errorString()));
     }
 
-    auto cryptoboxKeyDec4 = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyDec4->addChallengeResponseKey(challengeResponseKeyEnc);
+    auto CryptoBoxKeyDec4 = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyDec4->addChallengeResponseKey(challengeResponseKeyEnc);
     buffer.seek(0);
-    QVERIFY(reader.readDatabase(&buffer, cryptoboxKeyDec4, db2.data()));
+    QVERIFY(reader.readDatabase(&buffer, CryptoBoxKeyDec4, db2.data()));
     if (reader.hasError()) {
         QFAIL(qPrintable(reader.errorString()));
     }
 
     // try the same again, but this time with wrong key components
-    auto cryptoboxKeyDec5 = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyDec5->addKey(QSharedPointer<PasswordKey>::create("wrong password"));
+    auto CryptoBoxKeyDec5 = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyDec5->addKey(QSharedPointer<PasswordKey>::create("wrong password"));
     buffer.seek(0);
-    QVERIFY(!reader.readDatabase(&buffer, cryptoboxKeyDec5, db2.data()));
+    QVERIFY(!reader.readDatabase(&buffer, CryptoBoxKeyDec5, db2.data()));
     QVERIFY(reader.hasError());
 
-    auto cryptoboxKeyDec6 = QSharedPointer<CryptoboxKey>::create();
+    auto CryptoBoxKeyDec6 = QSharedPointer<CryptoBoxKey>::create();
     auto fileKeyWrong = QSharedPointer<FileKey>::create();
     fileKeyWrong->load(QString("%1/%2").arg(QString(KEEPASSX_TEST_DATA_DIR), "FileKeyHashed2.key"), &error);
     if (!error.isEmpty()) {
         QFAIL(qPrintable(error));
     }
-    cryptoboxKeyDec6->addKey(fileKeyWrong);
+    CryptoBoxKeyDec6->addKey(fileKeyWrong);
     buffer.seek(0);
-    QVERIFY(!reader.readDatabase(&buffer, cryptoboxKeyDec6, db2.data()));
+    QVERIFY(!reader.readDatabase(&buffer, CryptoBoxKeyDec6, db2.data()));
     QVERIFY(reader.hasError());
 
-    auto cryptoboxKeyDec7 = QSharedPointer<CryptoboxKey>::create();
+    auto CryptoBoxKeyDec7 = QSharedPointer<CryptoBoxKey>::create();
     auto compositeKeyWrong = QSharedPointer<CompositeKey>::create();
-    cryptoboxKeyDec7->addKey(compositeKeyWrong);
+    CryptoBoxKeyDec7->addKey(compositeKeyWrong);
     buffer.seek(0);
-    QVERIFY(!reader.readDatabase(&buffer, cryptoboxKeyDec7, db2.data()));
+    QVERIFY(!reader.readDatabase(&buffer, CryptoBoxKeyDec7, db2.data()));
     QVERIFY(reader.hasError());
 
-    auto cryptoboxKeyDec8 = QSharedPointer<CryptoboxKey>::create();
-    cryptoboxKeyDec8->addChallengeResponseKey(QSharedPointer<MockChallengeResponseKey>::create(QByteArray(16, 0x20)));
+    auto CryptoBoxKeyDec8 = QSharedPointer<CryptoBoxKey>::create();
+    CryptoBoxKeyDec8->addChallengeResponseKey(QSharedPointer<MockChallengeResponseKey>::create(QByteArray(16, 0x20)));
     buffer.seek(0);
-    QVERIFY(!reader.readDatabase(&buffer, cryptoboxKeyDec8, db2.data()));
+    QVERIFY(!reader.readDatabase(&buffer, CryptoBoxKeyDec8, db2.data()));
     QVERIFY(reader.hasError());
 }
 
